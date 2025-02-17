@@ -10,8 +10,8 @@ import {
 
 import { blue } from "@mui/material/colors";
 import { ChevronRight } from "@mui/icons-material";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
 
 const ColorButton = styled(Button)(({ theme }) => ({
   "&:hover": {
@@ -20,31 +20,40 @@ const ColorButton = styled(Button)(({ theme }) => ({
 }));
 
 function Create() {
-  //states
-  const [title, setTitle] = useState("");
-  const [price, setPrice] = useState(0);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    defaultValues: { title: "", price: 0 }, // القيم الافتراضية
+  });
+
   const nav = useNavigate();
-  //mui theme
   const theme = useTheme();
-  //send data to server
-  const sendData = () => {
+
+  // إرسال البيانات للسيرفر
+  const sendData = (data) => {
     fetch("http://localhost:3100/mydata", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ price, title }), // إرسال البيانات ككائن
+      body: JSON.stringify(data), // إرسال البيانات
     }).then(() => nav("/"));
   };
+
   return (
     <Box
       autoComplete="off"
       sx={{ width: "380px" }}
       component="form"
-      onSubmit={(e) => e.preventDefault()} // منع إعادة تحميل الصفحة
+      onSubmit={handleSubmit(sendData)} // استدعاء sendData عند الضغط على submit
     >
       <TextField
-        onChange={(e) => setTitle(e.target.value)}
+        {...register("title", {
+          required: "Transaction Title is required",
+          minLength: { value: 3, message: "Minimum 3 characters required" },
+        })}
         fullWidth
         label="Transaction Title"
         sx={{ mt: "22px", display: "block" }}
@@ -52,24 +61,30 @@ function Create() {
           startAdornment: <InputAdornment position="start">👉</InputAdornment>,
         }}
         variant="filled"
+        error={!!errors.title}
+        helperText={errors.title?.message} // عرض رسالة الخطأ
       />
 
       <TextField
-        onChange={(e) => setPrice(Number(e.target.value))}
+        {...register("price", {
+          required: "Transaction Amount is required",
+          min: { value: 1, message: "Amount must be greater than 0" },
+          valueAsNumber: true, // تحويل المدخل لقيمة رقمية
+        })}
         fullWidth
         label="Transaction Amount"
-        id="filled-start-adornment"
         sx={{ mt: "22px", display: "block" }}
         InputProps={{
           startAdornment: <InputAdornment position="start">$</InputAdornment>,
         }}
         variant="filled"
+        error={!!errors.price}
+        helperText={errors.price?.message} // عرض رسالة الخطأ
+        type="number"
       />
 
       <ColorButton
-        onClick={() => {
-          sendData();
-        }}
+        type="submit"
         sx={{ mt: "22px", bgcolor: theme.palette.primary.main }}
         variant="contained">
         Submit <ChevronRight />
